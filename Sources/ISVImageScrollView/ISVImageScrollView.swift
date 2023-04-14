@@ -8,18 +8,18 @@
 
 import UIKit
 
-public class ISVImageScrollView: UIScrollView, UIGestureRecognizerDelegate {
+public class ISVImageScrollView: UIScrollView {
+
+    private var singleTapHandler: (()->()?)? = nil
   
   // MARK: - Public
   
   public var imageView: UIImageView? {
     didSet {
-      oldValue?.removeGestureRecognizer(self.tap)
       oldValue?.removeFromSuperview()
       if let imageView = self.imageView {
         self.initialImageFrame = .null
         imageView.isUserInteractionEnabled = true
-        imageView.addGestureRecognizer(self.tap)
         self.addSubview(imageView)
       }
     }
@@ -36,6 +36,12 @@ public class ISVImageScrollView: UIScrollView, UIGestureRecognizerDelegate {
     super.init(coder: coder)
     self.configure()
   }
+
+    public init(singleTapHandler: @escaping ()->()) {
+        super.init(frame: .zero)
+        self.singleTapHandler = singleTapHandler
+        self.configure()
+    }
   
   deinit {
     self.stopObservingBoundsChange()
@@ -73,14 +79,11 @@ public class ISVImageScrollView: UIScrollView, UIGestureRecognizerDelegate {
   }
   
   // MARK: - Private: Tap to Zoom
-  
-  private lazy var tap: UITapGestureRecognizer = {
-    let tap = UITapGestureRecognizer(target: self, action: #selector(tapToZoom(_:)))
-    tap.numberOfTapsRequired = 2
-    tap.delegate = self
-    return tap
-  }()
-  
+
+    @IBAction private func singleTap(_ sender: UIGestureRecognizer) {
+        self.singleTapHandler?()
+    }
+
   @IBAction private func tapToZoom(_ sender: UIGestureRecognizer) {
     guard sender.state == .ended else { return }
     if self.zoomScale > self.minimumZoomScale {
@@ -114,6 +117,20 @@ public class ISVImageScrollView: UIScrollView, UIGestureRecognizerDelegate {
     self.showsVerticalScrollIndicator = false
     self.showsHorizontalScrollIndicator = false
     self.startObservingBoundsChange()
+
+      let singleTap = UITapGestureRecognizer(target: self, action: #selector(singleTap(_:)))
+      singleTap.numberOfTapsRequired = 1
+      self.addGestureRecognizer(singleTap)
+
+      // Double tap gesture
+      let doubleTap = UITapGestureRecognizer(target: self, action: #selector(tapToZoom(_:)))
+      doubleTap.numberOfTapsRequired = 2
+      self.addGestureRecognizer(doubleTap)
+
+      // Differentiate between double and single taps
+      singleTap.require(toFail: doubleTap)
+      singleTap.delaysTouchesBegan = true
+      doubleTap.delaysTouchesBegan = true
   }
   
   private func rectSize(for aspectRatio: CGFloat, thatFits size: CGSize) -> CGSize {
