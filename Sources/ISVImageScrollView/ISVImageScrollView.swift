@@ -11,6 +11,7 @@ import UIKit
 public class ISVImageScrollView: UIScrollView {
 
     private var singleTapHandler: (()->()?)? = nil
+    private var doubleTapHandler: (()->()?)? = nil
   
   // MARK: - Public
   
@@ -37,9 +38,10 @@ public class ISVImageScrollView: UIScrollView {
     self.configure()
   }
 
-    public init(singleTapHandler: @escaping ()->()) {
+    public init(singleTapHandler: (()->())? = nil, doubleTapHandler: (()->())? = nil) {
         super.init(frame: .zero)
         self.singleTapHandler = singleTapHandler
+        self.doubleTapHandler = doubleTapHandler
         self.configure()
     }
   
@@ -85,6 +87,8 @@ public class ISVImageScrollView: UIScrollView {
     }
 
   @IBAction private func tapToZoom(_ sender: UIGestureRecognizer) {
+      self.doubleTapHandler?()
+
     guard sender.state == .ended else { return }
     if self.zoomScale > self.minimumZoomScale {
       self.setZoomScale(self.minimumZoomScale, animated: true)
